@@ -21,14 +21,42 @@ CREATE TABLE retail_sales
               total_sale FLOAT,
             );
 
+ ---Data Exploration
+
+---Check the first 10 records
 
 SELECT TOP 10 *
 FROM retail_sales;
 
+---Find the total number of records
+
 SELECT 
    COUNT(*)
 FROM retail_sales;
+
+---How many sales we have?
+
+SELECT COUNT(*) as total_sale 
+FROM retail_sales;
+
+----How many customers we have?
+
+SELECT COUNT(customer_id) as Customer_records
+FROM retail_sales;
+
+---How many distinct customers we have?
+
+SELECT COUNT(DISTINCT customer_id) as Unique_Customers FROM retail_sales;
+
+---How many unique categories we have?
+
+SELECT DISTINCT category FROM retail_sales
+
 ----------------------
+---Data Cleaning
+
+---Checking for missing values across the transaction, customer and sales-related columns.
+
 SELECT * FROM retail_sales
 WHERE
      transactions_id IS NULL
@@ -49,6 +77,8 @@ WHERE
      OR         
      total_sale IS NULL;
 -------------------------------
+---Remove records containing NULL values
+
 DELETE FROM retail_sales
 WHERE
      transactions_id IS NULL
@@ -69,22 +99,7 @@ WHERE
      OR         
      total_sale IS NULL;
 -------------------------------------
----Data Exploration
 
----How many sales we have?
-
-SELECT COUNT(*) as total_sale FROM retail_sales;
-
-----How many customers we have?
-
-SELECT COUNT(customer_id) as total_sale FROM retail_sales;
-
----How many distinct customers we have?
-
-SELECT COUNT(DISTINCT customer_id) as total_sale FROM retail_sales;
-
-SELECT DISTINCT category FROM retail_sales
-------------------------------------------
 ----Data Analysis & Business Key Problems & Answers
 
 --My Analysis & Findings
@@ -145,41 +160,21 @@ GROUP BY gender, category;
 
 --Q7.Write a SQL query to calculate the average sale for each month. Find out best selling month in each year:
 
-SELECT
-    YEAR(sale_date) AS Year,
-    MONTH(sale_date) AS Month,
-    AVG(total_sale) AS Average_Sales
-FROM retail_sales
-GROUP BY
-    YEAR(sale_date),
-    MONTH(sale_date)
-ORDER BY
-    Year,
-    Average_Sales DESC;
-
-WITH Monthly_Sales AS
+SELECT Year, Month, Average_Sales
+FROM
 (
     SELECT
         YEAR(sale_date) AS Year,
         MONTH(sale_date) AS Month,
-        SUM(total_sale) AS Total_Sales
+        AVG(total_sale) AS Average_Sales,
+        ROW_NUMBER() OVER (
+            PARTITION BY YEAR(sale_date)
+            ORDER BY AVG(total_sale) DESC
+        ) AS rn
     FROM retail_sales
-    GROUP BY
-        YEAR(sale_date),
-        MONTH(sale_date)
-),
-Ranked_Sales AS
-(
-    SELECT *,
-        RANK() OVER (
-            PARTITION BY Year
-            ORDER BY Total_Sales DESC
-        ) AS Sales_Rank
-    FROM Monthly_Sales
-)
-SELECT *
-FROM Ranked_Sales
-WHERE Sales_Rank = 1;
+    GROUP BY YEAR(sale_date), MONTH(sale_date)
+) AS Sales
+WHERE rn = 1;
 
 --Q8.**Write a SQL query to find the top 5 customers based on the highest total sales **:
 
@@ -205,7 +200,7 @@ SELECT
     CASE
         WHEN DATEPART(HOUR, sale_time) < 12
             THEN 'Morning'
-        WHEN DATEPART(HOUR, sale_time) < 17
+        WHEN DATEPART(HOUR, sale_time)  BETWEEN 12 AND 17
             THEN 'Afternoon'
         ELSE 'Evening'
     END AS Shift,
@@ -218,7 +213,7 @@ GROUP BY
     CASE
         WHEN DATEPART(HOUR, sale_time) < 12
             THEN 'Morning'
-        WHEN DATEPART(HOUR, sale_time) < 17
+        WHEN DATEPART(HOUR, sale_time) BETWEEN 12 AND 17
             THEN 'Afternoon'
         ELSE 'Evening'
     END;
